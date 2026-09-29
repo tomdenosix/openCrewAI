@@ -26,6 +26,7 @@ from crewai_core.telemetry import (
     Telemetry as CoreTelemetry,
     common_span_attributes,
     flush_and_shutdown,
+    telemetry_base_url,
 )
 from opentelemetry.sdk.resources import SERVICE_NAME, Resource
 from opentelemetry.sdk.trace import TracerProvider
@@ -43,7 +44,6 @@ from crewai.events.types.system_events import (
 )
 from crewai.llms.base_llm import BaseLLM
 from crewai.telemetry.constants import (
-    CREWAI_TELEMETRY_BASE_URL,
     CREWAI_TELEMETRY_SERVICE_NAME,
     TRACER_NAME,
 )
@@ -97,7 +97,8 @@ class Telemetry:
         self._coding_agent_reported: bool = False
         self._coding_agent_lock = threading.Lock()
 
-        if self._is_telemetry_disabled():
+        base_url = telemetry_base_url()
+        if base_url is None or self._is_telemetry_disabled():
             return
 
         try:
@@ -115,7 +116,7 @@ class Telemetry:
             )
 
             self._exporter = SafeOTLPSpanExporter(
-                endpoint=f"{CREWAI_TELEMETRY_BASE_URL}/v1/traces",
+                endpoint=f"{base_url}/v1/traces",
                 timeout=30,
             )
             self.provider.add_span_processor(BatchSpanProcessor(self._exporter))

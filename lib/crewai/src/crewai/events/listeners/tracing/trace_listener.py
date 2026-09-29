@@ -155,7 +155,7 @@ class TraceCollectionListener(BaseEventListener):
         "agent_execution_completed",
     ]
 
-    _instance: Self | None = None
+    _instance: ClassVar[Self | None] = None
     _initialized: bool = False
     _listeners_setup: bool = False
 
