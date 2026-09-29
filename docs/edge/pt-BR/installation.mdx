@@ -172,6 +172,40 @@ Se você ainda não instalou o `uv`, siga o **passo 1** para instalá-lo rapidam
   </Step>
 </Steps>
 
+## Instalando uma Build Personalizada do GitHub Packages
+
+O workflow de pacotes do repositório cria wheels e publica no GitHub Packages. O
+registro Python do GitHub Packages exige autenticação para baixar pacotes,
+inclusive os públicos. Crie um token de acesso pessoal clássico com
+`read:packages` e instale o pacote pelo registro Python do proprietário do
+repositório:
+
+```shell
+export GITHUB_TOKEN="<your-read-packages-token>"
+pip install \
+  --index-url "https://USERNAME:${GITHUB_TOKEN}@pypi.pkg.github.com/OWNER/simple/" \
+  --extra-index-url "https://pypi.org/simple" \
+  crewai
+```
+
+O workflow de publicação não precisa de um token pessoal: o GitHub Actions usa o
+`GITHUB_TOKEN` integrado com a permissão `packages: write`.
+
+Não existe instalação anônima com `pip` ou `uv` a partir do registro Python do
+GitHub Packages. Se o repositório e a release forem públicos e você quiser
+instalar sem token, anexe o wheel a uma release do GitHub e instale o asset
+diretamente:
+
+```shell
+pip install \
+  "https://github.com/OWNER/REPOSITORY/releases/download/TAG/crewai-VERSION-py3-none-any.whl"
+```
+
+Isso ignora o GitHub Packages. As dependências ainda são resolvidas pelos índices
+normais de pacotes; portanto, publique todos os pacotes personalizados do
+workspace ou forneça os assets da release em um diretório local `find-links` ao
+instalar o conjunto completo.
+
 ## Opções de Instalação Enterprise
 
 <Note type="info">

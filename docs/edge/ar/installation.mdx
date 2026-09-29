@@ -177,6 +177,36 @@ python3 --version
   </Step>
 </Steps>
 
+## تثبيت إصدار مخصص من GitHub Packages
+
+يبني سير عمل الحزمة في المستودع ملفات wheel وينشرها إلى GitHub Packages. يتطلب
+سجل Python في GitHub Packages المصادقة لتنزيل الحزم، بما في ذلك الحزم العامة.
+أنشئ رمز وصول شخصياً كلاسيكياً بصلاحية `read:packages`، ثم ثبّت الحزمة من سجل
+Python الخاص بمالك المستودع:
+
+```shell
+export GITHUB_TOKEN="<your-read-packages-token>"
+pip install \
+  --index-url "https://USERNAME:${GITHUB_TOKEN}@pypi.pkg.github.com/OWNER/simple/" \
+  --extra-index-url "https://pypi.org/simple" \
+  crewai
+```
+
+لا يحتاج سير عمل النشر نفسه إلى رمز شخصي؛ إذ يستخدم `GITHUB_TOKEN` المدمج في
+GitHub Actions مع صلاحية `packages: write`.
+
+لا يوجد تثبيت مجهول باستخدام `pip` أو `uv` من سجل Python في GitHub Packages.
+إذا كان المستودع والإصدار عامين وتريد التثبيت دون رمز، أرفق wheel بإصدار GitHub
+وثبّت الأصل مباشرة:
+
+```shell
+pip install \
+  "https://github.com/OWNER/REPOSITORY/releases/download/TAG/crewai-VERSION-py3-none-any.whl"
+```
+
+يتجاوز هذا GitHub Packages. وما تزال التبعيات تُحل من فهارس الحزم المعتادة، لذا
+انشر كل حزم مساحة العمل المخصصة أو وفّر أصول الإصدار كمجلد محلي عند تثبيت المجموعة كاملة.
+
 ## خيارات التثبيت للمؤسسات
 
 <Note type="info">

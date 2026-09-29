@@ -170,6 +170,37 @@ CrewAI는 의존성 관리와 패키지 처리를 위해 `uv`를 사용합니다
   </Step>
 </Steps>
 
+## GitHub Packages에서 사용자 지정 빌드 설치
+
+저장소의 패키지 워크플로는 wheel을 빌드하고 GitHub Packages에 게시합니다.
+GitHub Packages Python 레지스트리는 공개 패키지를 포함한 패키지 다운로드에도
+인증이 필요합니다. `read:packages` 권한이 있는 클래식 개인 액세스 토큰을 만든
+후 저장소 소유자의 Python 레지스트리에서 패키지를 설치하세요.
+
+```shell
+export GITHUB_TOKEN="<your-read-packages-token>"
+pip install \
+  --index-url "https://USERNAME:${GITHUB_TOKEN}@pypi.pkg.github.com/OWNER/simple/" \
+  --extra-index-url "https://pypi.org/simple" \
+  crewai
+```
+
+게시 워크플로 자체에는 개인 토큰이 필요하지 않습니다. GitHub Actions의 내장
+`GITHUB_TOKEN`에 `packages: write` 권한을 사용합니다.
+
+GitHub Packages Python 레지스트리에서는 `pip` 또는 `uv`로 익명 설치할 수
+없습니다. 저장소와 릴리스가 공개되어 있고 토큰 없이 설치하려면 wheel을 GitHub
+Release에 첨부한 뒤 해당 자산을 직접 설치하세요.
+
+```shell
+pip install \
+  "https://github.com/OWNER/REPOSITORY/releases/download/TAG/crewai-VERSION-py3-none-any.whl"
+```
+
+이 방법은 GitHub Packages를 사용하지 않습니다. 의존성은 일반 패키지 인덱스에서
+계속 해결되므로 사용자 지정 workspace 패키지를 모두 게시하거나 전체 세트를
+설치할 때 릴리스 자산을 로컬 `find-links` 디렉터리로 제공해야 합니다.
+
 ## 엔터프라이즈 설치 옵션
 
 <Note type="info">

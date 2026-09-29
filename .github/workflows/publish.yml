@@ -1,4 +1,4 @@
-name: Publish to PyPI
+name: Publish to GitHub Packages
 
 on:
   workflow_dispatch:
@@ -48,15 +48,15 @@ jobs:
           path: dist/
 
   publish:
-    name: Publish to PyPI
+    name: Publish to GitHub Packages
     needs: build
     runs-on: ubuntu-latest
     environment:
-      name: pypi
-      url: https://pypi.org/p/crewai
+      name: github-packages
+      url: https://github.com/${{ github.repository }}/packages
     permissions:
-      id-token: write
       contents: read
+      packages: write
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
@@ -75,9 +75,10 @@ jobs:
           name: dist
           path: dist
 
-      - name: Publish to PyPI
+      - name: Publish to GitHub Packages
         env:
-          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+          UV_PUBLISH_USERNAME: ${{ github.actor }}
+          UV_PUBLISH_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
         run: |
           failed=0
           for package in dist/*; do
@@ -85,8 +86,10 @@ jobs:
               echo "Skipping private package: $package"
               continue
             fi
-            echo "Publishing $package"
-            if ! uv publish "$package"; then
+            echo "Publishing $package to GitHub Packages"
+            if ! uv publish \
+              --publish-url "https://pypi.pkg.github.com/${{ github.repository_owner }}/" \
+              "$package"; then
               echo "Failed to publish $package"
               failed=1
             fi
@@ -112,6 +115,7 @@ jobs:
 
           import os
           tag = os.environ.get('RELEASE_TAG') or version
+          repository = os.environ.get('GITHUB_REPOSITORY', '')
 
           try:
               r = subprocess.run(['gh','release','view',tag,'--json','body','-q','.body'],
@@ -122,9 +126,9 @@ jobs:
 
           blocks = [
               {'type':'section','text':{'type':'mrkdwn',
-                  'text':f':rocket: \`crewai v{version}\` published to PyPI'}},
+                  'text':f':rocket: \`crewai v{version}\` published to GitHub Packages'}},
               {'type':'section','text':{'type':'mrkdwn',
-                  'text':f'<https://pypi.org/project/crewai/{version}/|View on PyPI> · <https://github.com/crewAIInc/crewAI/releases/tag/{tag}|Release notes>'}},
+                  'text':f'<https://github.com/{repository}/packages|View on GitHub Packages> · <https://github.com/crewAIInc/crewAI/releases/tag/{tag}|Release notes>'}},
               {'type':'divider'},
           ]
 
