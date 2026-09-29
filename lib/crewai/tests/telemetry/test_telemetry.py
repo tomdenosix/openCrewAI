@@ -61,11 +61,36 @@ def test_telemetry_environment_variables(env_var, value, expected_ready):
 
 
 def test_telemetry_enabled_by_default():
-    """Test that telemetry is enabled by default."""
-    with patch.dict(os.environ, {}, clear=True):
-        with patch("crewai.telemetry.telemetry.TracerProvider"):
-            telemetry = Telemetry()
-            assert telemetry.ready is True
+    """Test that an empty environment uses the local OTLP HTTP collector."""
+    with (
+        patch.dict(os.environ, {}, clear=True),
+        patch("crewai.telemetry.telemetry.TracerProvider"),
+        patch("crewai.telemetry.telemetry.SafeOTLPSpanExporter") as exporter,
+    ):
+        telemetry = Telemetry()
+
+    assert telemetry.ready is True
+    exporter.assert_called_once_with(
+        endpoint="http://localhost:4318/v1/traces", timeout=30
+    )
+
+
+def test_telemetry_base_url_trailing_slash():
+    with (
+        patch.dict(os.environ, {}, clear=True),
+        patch("crewai.telemetry.telemetry.TracerProvider"),
+        patch(
+            "crewai.telemetry.telemetry.CREWAI_TELEMETRY_BASE_URL",
+            "http://localhost:4318/",
+        ),
+        patch("crewai.telemetry.telemetry.SafeOTLPSpanExporter") as exporter,
+    ):
+        telemetry = Telemetry()
+
+    assert telemetry.ready is True
+    exporter.assert_called_once_with(
+        endpoint="http://localhost:4318/v1/traces", timeout=30
+    )
 
 
 def test_set_tracer_never_installs_a_global_provider():

@@ -115,7 +115,7 @@ class Telemetry:
             )
 
             self._exporter = SafeOTLPSpanExporter(
-                endpoint=f"{CREWAI_TELEMETRY_BASE_URL}/v1/traces",
+                endpoint=f"{CREWAI_TELEMETRY_BASE_URL.rstrip('/')}/v1/traces",
                 timeout=30,
             )
             self.provider.add_span_processor(BatchSpanProcessor(self._exporter))
@@ -127,6 +127,7 @@ class Telemetry:
                 (SystemExit, KeyboardInterrupt, GeneratorExit, asyncio.CancelledError),
             ):
                 raise
+            logger.debug("Failed to initialize CrewAI telemetry", exc_info=True)
             self.ready = False
 
     @classmethod

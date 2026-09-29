@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterator
 import logging
+import os
 import time
 from typing import cast
 from unittest.mock import MagicMock, patch
@@ -20,6 +21,28 @@ import requests
 
 OTLP_LOGGER = OTLPSpanExporter.__module__
 ENDPOINT = "http://127.0.0.1:9/v1/traces"
+
+
+@pytest.mark.parametrize("base_url", [None, "http://localhost:4318/"])
+def test_default_collector_endpoint(base_url: str | None) -> None:
+    with (
+        patch.dict(os.environ, {}, clear=True),
+        patch("crewai_core.telemetry.TracerProvider"),
+        patch("crewai_core.telemetry.SafeOTLPSpanExporter") as exporter,
+        patch("crewai_core.telemetry.Telemetry._register_shutdown_handlers"),
+    ):
+        Telemetry._instance = None
+        if base_url is not None:
+            with patch("crewai_core.telemetry.CREWAI_TELEMETRY_BASE_URL", base_url):
+                telemetry = Telemetry()
+        else:
+            telemetry = Telemetry()
+
+    Telemetry._instance = None
+    assert telemetry.ready is True
+    exporter.assert_called_once_with(
+        endpoint="http://localhost:4318/v1/traces", timeout=30
+    )
 
 
 def _otlp_messages(caplog: pytest.LogCaptureFixture) -> list[str]:

@@ -42,7 +42,7 @@ from crewai_core.runtime_env import (
 logger = logging.getLogger(__name__)
 
 
-CREWAI_TELEMETRY_BASE_URL: Final[str] = "https://telemetry.crewai.com:4319"
+CREWAI_TELEMETRY_BASE_URL: Final[str] = "http://localhost:4318"
 CREWAI_TELEMETRY_SERVICE_NAME: Final[str] = "crewAI-telemetry"
 
 TRACER_NAME: Final[str] = "crewai.telemetry"
@@ -309,7 +309,7 @@ class Telemetry:
             )
 
             self._exporter = SafeOTLPSpanExporter(
-                endpoint=f"{CREWAI_TELEMETRY_BASE_URL}/v1/traces",
+                endpoint=f"{CREWAI_TELEMETRY_BASE_URL.rstrip('/')}/v1/traces",
                 timeout=30,
             )
             self.provider.add_span_processor(BatchSpanProcessor(self._exporter))
