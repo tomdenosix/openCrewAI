@@ -8,34 +8,46 @@ mode: "wide"
 ## Telemetry
 
 <Note>
-    By default, we collect no data that would be considered personal information under GDPR and other privacy regulations.
-    We do collect Tool's names and Agent's roles, so be advised not to include any personal information in the tool's names or the Agent's roles.
-	Because no personal information is collected, it's not necessary to worry about data residency.
-	When `share_crew` is enabled, additional data is collected which may contain personal information if included by the user. 
-    Users should exercise caution when enabling this feature to ensure compliance with privacy regulations.
+    Telemetry reporting is disabled unless `CREWAI_TELEMETRY_BASE_URL` is set.
+    No telemetry destination is used when this variable is unset or empty.
 </Note>
 
-CrewAI utilizes anonymous telemetry to gather usage statistics with the primary goal of enhancing the library. 
-Our focus is on improving and developing the features, integrations, and tools most utilized by our users.
+CrewAI can emit anonymous usage telemetry to an OpenTelemetry Protocol (OTLP)
+HTTP collector. The same opt-in configuration is used by the `crewai` framework
+and the `crewai` CLI. Set the variable to the collector's base URL; CrewAI sends
+trace data to that URL with `/v1/traces` appended.
+
+```shell
+export CREWAI_TELEMETRY_BASE_URL="https://telemetry.example.com:4319"
+```
+
+CrewAI's hosted collector, when configured by the distributor, is
+`https://telemetry.crewai.com:4319`. CrewAI does not contact that or any other
+collector by default. The URL is read at telemetry initialization time and is
+not included in telemetry data.
+
+To keep telemetry disabled explicitly, leave `CREWAI_TELEMETRY_BASE_URL` unset
+or empty. `CREWAI_DISABLE_TELEMETRY` and `OTEL_SDK_DISABLED` can also disable
+export after a destination has been configured. Each accepts `true`, `1`,
+`yes`, or `on` (case-insensitive).
 
 It's pivotal to understand that by default, **NO personal data is collected** concerning prompts, task descriptions, agents' backstories or goals, 
 usage of tools, API calls, responses, any data processed by the agents, or secrets and environment variables.
 When the `share_crew` feature is enabled, detailed data including task descriptions, agents' backstories or goals, and other specific attributes are collected 
 to provide deeper insights. This expanded data collection may include personal information if users have incorporated it into their crews or tasks. 
 Users should carefully consider the content of their crews and tasks before enabling `share_crew`. 
-Users can disable CrewAI telemetry by setting `CREWAI_DISABLE_TELEMETRY` to `true`, `1`, `yes`, or `on` (any case). `OTEL_SDK_DISABLED` with the same values also disables CrewAI's exporter. The OpenTelemetry SDK itself still only honors `true` for disabling other instrumentation in the process.
 AMP tracing is covered separately in [Tracing](/en/observability/tracing).
 
 ### Examples:
 ```python
-# Disable CrewAI telemetry only
+# Disable CrewAI telemetry explicitly
 os.environ['CREWAI_DISABLE_TELEMETRY'] = 'true'
 
 # Disable all OpenTelemetry (including CrewAI)
 os.environ['OTEL_SDK_DISABLED'] = 'true'
 ```
 
-`CREWAI_DISABLE_TELEMETRY=1` (or `yes` / `on`) works the same as `true`. Unrecognized values are ignored and leave telemetry on.
+`CREWAI_DISABLE_TELEMETRY=1` (or `yes` / `on`) works the same as `true`. Unrecognized values are ignored. The OpenTelemetry SDK itself still only honors `true` for disabling other instrumentation in the process.
 
 ### Isolation from your own OpenTelemetry setup
 
@@ -52,7 +64,10 @@ Observability integrations are unaffected: they instrument CrewAI through their
 own tracer provider, which is independent of the one described here.
 
 ### Data Explanation:
-| Defaulted | Data                                      | Reason and Specifics                                                                                                       |
+The following data is reported only when `CREWAI_TELEMETRY_BASE_URL` is set.
+Rows marked "No" require `share_crew` in addition to the telemetry destination.
+
+| Collected with telemetry enabled | Data                                      | Reason and Specifics                                                                                                       |
 |:----------|:------------------------------------------|:----------------------------------------------------------------------------------------------------------------------------|
 | Yes       | CrewAI and Python Version                 | Tracks software versions. Example: CrewAI v1.2.3, Python 3.8.10. No personal data. |
 | Yes       | Crew Metadata | Includes: randomly generated key and ID, process type (e.g., 'sequential', 'parallel'), boolean flag for memory usage (true/false), a boolean flag for whether any inputs were passed to the run (true/false — never the input keys or values, which are only collected when `share_crew` is enabled), count of tasks, count of agents. All non-personal. |
@@ -72,10 +87,6 @@ own tracer provider, which is independent of the one described here.
 | No        | Environment Information | Includes: platform, release, system, version, and CPU count. Example: 'Windows 10', 'x86_64'. No personal data. |
 | No        | Crew and Task Inputs and Outputs | Includes: input parameters and output results as non-identifiable data. Users should ensure no personal info is included. |
 | No        | Comprehensive Crew Execution Data | Includes: detailed logs of crew operations, all agents and tasks data, final output. All non-personal and technical in nature. |
-
-<Note>
-    "No" in the "Defaulted" column indicates that this data is only collected when `share_crew` is set to `true`.
-</Note>
 
 ### Opt-In Further Telemetry Sharing
 

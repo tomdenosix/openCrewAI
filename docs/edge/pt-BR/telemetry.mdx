@@ -8,34 +8,46 @@ mode: "wide"
 ## Telemetria
 
 <Note>
-    Por padrão, não coletamos dados que possam ser considerados informações pessoais segundo a GDPR e outras regulamentações de privacidade.
-    Coletamos nomes das ferramentas e funções dos agentes, portanto, evite incluir qualquer informação pessoal nos nomes das ferramentas ou nas funções dos agentes.
-	Como nenhuma informação pessoal é coletada, não é necessário se preocupar com localidade dos dados.
-	Quando `share_crew` está ativado, dados adicionais são coletados e podem conter informações pessoais caso sejam incluídas pelo usuário.
-    Usuários devem tomar cuidado ao habilitar este recurso para garantir conformidade com regulamentações de privacidade.
+    O envio de telemetria fica desativado quando `CREWAI_TELEMETRY_BASE_URL` não está definido.
+    Nenhum destino de telemetria é usado quando essa variável não está definida ou está vazia.
 </Note>
 
-O CrewAI utiliza telemetria anônima para coletar estatísticas de uso com o objetivo principal de aprimorar a biblioteca.
-Nosso foco está em melhorar e desenvolver as funcionalidades, integrações e ferramentas mais utilizadas pelos usuários.
+O CrewAI pode enviar telemetria anônima de uso para um coletor HTTP do OpenTelemetry
+Protocol (OTLP). O framework `crewai` e o CLI `crewai` usam a mesma configuração
+opt-in. Defina a variável com a URL base do coletor; o CrewAI envia os traces para
+essa URL acrescentando `/v1/traces`.
+
+```shell
+export CREWAI_TELEMETRY_BASE_URL="https://telemetry.example.com:4319"
+```
+
+O coletor hospedado do CrewAI, quando configurado pelo distribuidor, é
+`https://telemetry.crewai.com:4319`. O CrewAI não se conecta a esse ou a qualquer
+outro coletor por padrão. A URL é lida na inicialização da telemetria e não é
+incluída nos dados de telemetria.
+
+Para manter a telemetria desativada, deixe `CREWAI_TELEMETRY_BASE_URL` não definido
+ou vazio. `CREWAI_DISABLE_TELEMETRY` e `OTEL_SDK_DISABLED` também podem desativar
+o envio depois que um destino for configurado. Ambos aceitam `true`, `1`, `yes` ou
+`on` sem distinção de maiúsculas e minúsculas.
 
 É fundamental compreender que, por padrão, **NENHUM dado pessoal é coletado** referente a prompts, descrições de tarefas, histórias ou objetivos dos agentes,
 uso de ferramentas, chamadas de API, respostas, quaisquer dados processados pelos agentes ou segredos e variáveis de ambiente.
 Quando o recurso `share_crew` está ativado, dados detalhados, incluindo descrições das tarefas, histórias ou objetivos dos agentes e outros atributos específicos são coletados
 para fornecer insights mais detalhados. Essa coleta expandida pode incluir informações pessoais caso o usuário as tenha inserido em seus crews ou tarefas.
 Usuários devem considerar cuidadosamente o conteúdo de seus crews e tarefas antes de habilitar o `share_crew`.
-A telemetria do CrewAI pode ser desabilitada ao definir `CREWAI_DISABLE_TELEMETRY` como `true`, `1`, `yes` ou `on` (qualquer capitalização). `OTEL_SDK_DISABLED` com os mesmos valores também desabilita o exportador do CrewAI. O SDK do OpenTelemetry em si ainda só reconhece `true` para desabilitar as demais instrumentações do processo.
 O rastreamento AMP é tratado em [Tracing](/pt-BR/observability/tracing).
 
 ### Exemplos:
 ```python
-# Desabilitar apenas a telemetria do CrewAI
+# Desabilitar explicitamente a telemetria do CrewAI
 os.environ['CREWAI_DISABLE_TELEMETRY'] = 'true'
 
 # Desabilitar todo o OpenTelemetry (incluindo CrewAI)
 os.environ['OTEL_SDK_DISABLED'] = 'true'
 ```
 
-`CREWAI_DISABLE_TELEMETRY=1` (ou `yes` / `on`) funciona como `true`. Valores não reconhecidos são ignorados e a telemetria permanece ligada.
+`CREWAI_DISABLE_TELEMETRY=1` (ou `yes` / `on`) funciona como `true`. Valores não reconhecidos são ignorados. O SDK do OpenTelemetry em si ainda só reconhece `true` para desabilitar as demais instrumentações do processo.
 
 ### Isolamento da sua própria configuração do OpenTelemetry
 
@@ -52,7 +64,9 @@ As integrações de observabilidade não são afetadas: elas instrumentam o Crew
 por meio do próprio tracer provider, que é independente do descrito aqui.
 
 ### Explicação dos Dados:
-| Padrão | Dados                                      | Razão e Especificidades                                                                                                                         |
+Os dados a seguir são enviados somente quando `CREWAI_TELEMETRY_BASE_URL` está definido. As linhas marcadas como "Não" também exigem `share_crew`.
+
+| Coletado com telemetria habilitada | Dados                                      | Razão e Especificidades                                                                                                                         |
 |--------|--------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
 | Sim    | Versão do CrewAI e Python                  | Rastreia versões dos softwares. Exemplo: CrewAI v1.2.3, Python 3.8.10. Sem dados pessoais.                 |
 | Sim    | Metadados do Crew                         | Inclui: chave e ID gerados aleatoriamente, tipo de processo (ex: 'sequential', 'parallel'), flag booleana para uso de memória (true/false), uma flag booleana indicando se alguma entrada foi passada para a execução (true/false — nunca as chaves ou os valores das entradas, que só são coletados quando `share_crew` está habilitado), quantidade de tarefas, quantidade de agentes. Tudo não pessoal.  |
@@ -72,10 +86,6 @@ por meio do próprio tracer provider, que é independente do descrito aqui.
 | Não    | Informações de Ambiente                    | Inclui: plataforma, release, sistema, versão e quantidade de CPUs. Exemplo: 'Windows 10', 'x86_64'. Sem dados pessoais.                       |
 | Não    | Entradas e Saídas de Crew e Tarefas        | Inclui: parâmetros de entrada e resultados como dados não identificáveis. Usuários devem garantir que não haja info pessoal.                |
 | Não    | Dados Abrangentes de Execução do Crew      | Inclui: logs detalhados das operações do crew, dados de todos os agentes e tarefas, resultado final. Tudo de natureza técnica, sem dados pessoais.        |
-
-<Note>
-    "Não" na coluna "Padrão" indica que esse dado só é coletado quando `share_crew` está configurado como `true`.
-</Note>
 
 ### Compartilhamento Avançado de Telemetria (Opt-In)
 

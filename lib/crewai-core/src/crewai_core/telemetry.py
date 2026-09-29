@@ -42,7 +42,7 @@ from crewai_core.runtime_env import (
 logger = logging.getLogger(__name__)
 
 
-CREWAI_TELEMETRY_BASE_URL: Final[str] = "https://telemetry.crewai.com:4319"
+CREWAI_TELEMETRY_BASE_URL_ENV: Final[str] = "CREWAI_TELEMETRY_BASE_URL"
 CREWAI_TELEMETRY_SERVICE_NAME: Final[str] = "crewAI-telemetry"
 
 TRACER_NAME: Final[str] = "crewai.telemetry"
@@ -72,6 +72,11 @@ broken network; ``network_error`` a transport failure before any response;
 abort at a confirmation prompt; ``unexpected`` anything else. Never the error
 message.
 """
+
+
+def telemetry_base_url() -> str | None:
+    """Collector base URL from ``CREWAI_TELEMETRY_BASE_URL``; None when unset."""
+    return os.getenv(CREWAI_TELEMETRY_BASE_URL_ENV, "").strip().rstrip("/") or None
 
 
 def close_span(span: Span) -> None:
@@ -291,7 +296,8 @@ class Telemetry:
         self.trace_set: bool = False
         self._initialized: bool = True
 
-        if self._is_telemetry_disabled():
+        base_url = telemetry_base_url()
+        if base_url is None or self._is_telemetry_disabled():
             return
 
         try:
@@ -309,7 +315,7 @@ class Telemetry:
             )
 
             self._exporter = SafeOTLPSpanExporter(
-                endpoint=f"{CREWAI_TELEMETRY_BASE_URL}/v1/traces",
+                endpoint=f"{base_url}/v1/traces",
                 timeout=30,
             )
             self.provider.add_span_processor(BatchSpanProcessor(self._exporter))
@@ -353,7 +359,8 @@ class Telemetry:
     @classmethod
     def _is_telemetry_disabled(cls) -> bool:
         return (
-            cls._env_flag_enabled("OTEL_SDK_DISABLED")
+            telemetry_base_url() is None
+            or cls._env_flag_enabled("OTEL_SDK_DISABLED")
             or cls._env_flag_enabled("CREWAI_DISABLE_TELEMETRY")
             or cls._env_flag_enabled("CREWAI_DISABLE_TRACKING")
         )

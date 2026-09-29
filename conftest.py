@@ -142,7 +142,9 @@ def _patched_make_vcr_request(
     The original implementation fails on binary request bodies (like file uploads)
     because it assumes all content can be decoded as UTF-8.
     """
-    raw_body = real_request_body if real_request_body is not None else httpx_request.read()
+    raw_body = (
+        real_request_body if real_request_body is not None else httpx_request.read()
+    )
     body: Any = raw_body
     if isinstance(raw_body, bytes):
         try:
@@ -272,12 +274,15 @@ def setup_test_environment() -> Generator[None, Any, None]:
 
         os.environ["CREWAI_STORAGE_DIR"] = str(storage_dir)
         os.environ["CREWAI_TESTING"] = "true"
+        # Telemetry only sends when a destination is configured; cassettes record this one.
+        os.environ["CREWAI_TELEMETRY_BASE_URL"] = "https://telemetry.crewai.com:4319"
 
         try:
             yield
         finally:
             os.environ.pop("CREWAI_TESTING", "true")
             os.environ.pop("CREWAI_STORAGE_DIR", None)
+            os.environ.pop("CREWAI_TELEMETRY_BASE_URL", None)
             os.environ.pop("CREWAI_DISABLE_TELEMETRY", "true")
             os.environ.pop("OTEL_SDK_DISABLED", "true")
             os.environ.pop("OPENAI_BASE_URL", "https://api.openai.com/v1")
